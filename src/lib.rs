@@ -1,5 +1,6 @@
+use std::env;
 use std::error::Error;
-use std::{env, fs};
+use std::fs;
 
 pub struct Config {
     pub query: String,
@@ -26,17 +27,20 @@ impl Config {
 }
 
 pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
-    let contents = fs::read_to_string(config.file_path)?;
+    let content = fs::read_to_string(config.file_path).unwrap_or_else(|err| {
+        return err.to_string();
+    });
 
-    let results = if config.ignore_case {
-        ingore_case_search(&config.query, &contents)
+    let result = if config.ignore_case {
+        ingore_case_search(&config.query, &content)
     } else {
-        search(&config.query, &contents)
+        search(&config.query, &content)
     };
 
-    for line in results {
-        println!("{line}");
+    for res in result {
+        println!("{}", res);
     }
+
     Ok(())
 }
 
@@ -68,16 +72,6 @@ mod tests {
     }
 }
 
-pub fn search<'a>(query: &str, contents: &'a str) -> Vec<&'a str> {
-    let mut grep = Vec::new();
-    for line in contents.lines() {
-        if line.to_lowercase().contains(&query.to_lowercase()) {
-            grep.push(line.trim());
-        }
-    }
-    return grep;
-}
-
 pub fn ingore_case_search<'a>(query: &str, contents: &'a str) -> Vec<&'a str> {
     let mut grep = Vec::new();
 
@@ -86,5 +80,16 @@ pub fn ingore_case_search<'a>(query: &str, contents: &'a str) -> Vec<&'a str> {
             grep.push(line);
         }
     }
-    return grep;
+    grep
+}
+
+pub fn search<'a>(query: &str, content: &'a str) -> Vec<&'a str> {
+    let mut grep = Vec::new();
+
+    for line in content.lines() {
+        if line.to_lowercase().contains(&query) {
+            grep.push(line);
+        }
+    }
+    grep
 }
